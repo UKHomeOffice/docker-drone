@@ -1,47 +1,43 @@
 pipeline:
   build_docker_image:
-    image: docker:1.12
+    image: docker:17.09.0-ce
     environment:
-      - DOCKER_HOST=tcp://127.0.0.1:2375
+      - DOCKER_HOST=tcp://172.17.0.1:2375
     commands:
-      - docker build -t drone .
+      - docker build -t drone:$${DRONE_COMMIT_SHA} .
 
   run_drone:
-    image: docker:1.12
+    image: docker:17.09.0-ce
     environment:
-      - DOCKER_HOST=tcp://127.0.0.1:2375
+      - DOCKER_HOST=tcp://172.17.0.1:2375
     commands:
-      - docker run --rm drone
+      - docker run --rm drone:$${DRONE_COMMIT_SHA}
 
   latest_image_to_quay:
-    image: docker:1.12
+    image: docker:17.09.0-ce
+    secrets:
+      - docker_password
     environment:
-      - DOCKER_HOST=tcp://127.0.0.1:2375
+      - DOCKER_HOST=tcp://172.17.0.1:2375
     commands:
-      - docker login -u="ukhomeofficedigital+drone_drone" -p=${DOCKER_PASSWORD} quay.io
-      - docker tag drone quay.io/ukhomeofficedigital/drone:latest
-      - docker tag drone quay.io/ukhomeofficedigital/drone:${DRONE_COMMIT_SHA}
+      - docker login -u="ukhomeofficedigital+drone_drone" -p=$${DOCKER_PASSWORD} quay.io
+      - docker tag drone:$${DRONE_COMMIT_SHA} quay.io/ukhomeofficedigital/drone:latest
+      - docker tag drone:$${DRONE_COMMIT_SHA} quay.io/ukhomeofficedigital/drone:$${DRONE_COMMIT_SHA}
       - docker push quay.io/ukhomeofficedigital/drone:latest
-      - docker push quay.io/ukhomeofficedigital/drone:${DRONE_COMMIT_SHA}
+      - docker push quay.io/ukhomeofficedigital/drone:$${DRONE_COMMIT_SHA}
     when:
       event: push
       branch: master
 
   tag_image_to_quay:
-    image: docker:1.12
+    image: docker:17.09.0-ce
+    secrets:
+      - docker_password
     environment:
-      - DOCKER_HOST=tcp://127.0.0.1:2375
+      - DOCKER_HOST=tcp://172.17.0.1:2375
     commands:
-      - docker login -u="ukhomeofficedigital+drone_drone" -p=${DOCKER_PASSWORD} quay.io
-      - docker tag drone quay.io/ukhomeofficedigital/drone:${DRONE_TAG}
-      - docker push quay.io/ukhomeofficedigital/drone:${DRONE_TAG}
+      - docker login -u="ukhomeofficedigital+drone_drone" -p=$${DOCKER_PASSWORD} quay.io
+      - docker tag drone:$${DRONE_COMMIT_SHA} quay.io/ukhomeofficedigital/drone:$${DRONE_TAG}
+      - docker push quay.io/ukhomeofficedigital/drone:$${DRONE_TAG}
     when:
       event: tag
-
-services:
-  dind:
-    image: docker:1.12-dind
-    privileged: true
-    command:
-      - "-s"
-      - "overlay"
