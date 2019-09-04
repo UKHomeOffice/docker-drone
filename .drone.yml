@@ -6,6 +6,15 @@ pipeline:
     commands:
       - docker build -t drone:$${DRONE_COMMIT_SHA} .
 
+  scan:
+    image: quay.io/ukhomeofficedigital/anchore-submission:latest
+    dockerfile: Dockerfile
+    image_name: drone:${DRONE_COMMIT_SHA}
+    tolarates: medium
+    fail_on_detection: true
+    when:
+      event: push
+
   run_drone:
     image: docker:17.09.0-ce
     environment:
